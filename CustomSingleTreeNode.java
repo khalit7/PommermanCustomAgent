@@ -1,9 +1,8 @@
 package players.CustomAgent;
 
 import core.GameState;
-import players.heuristics.AdvancedHeuristic;
-import players.heuristics.CustomHeuristic;
-import players.heuristics.StateHeuristic;
+import players.CustomAgent.heuristics.MultiObjectiveHeuristicCustom;
+import players.CustomAgent.heuristics.CustomStateHeuristic;
 import utils.ElapsedCpuTimer;
 import utils.Types;
 import utils.Utils;
@@ -12,13 +11,13 @@ import utils.Vector2d;
 import java.util.ArrayList;
 import java.util.Random;
 
-public class SingleTreeNode
+public class CustomSingleTreeNode
 {
 
-    public MCTSParams params;
+    public CustomMCTSParams params;
 
-    private SingleTreeNode parent;
-    private SingleTreeNode[] children;
+    private CustomSingleTreeNode parent;
+    private CustomSingleTreeNode[] children;
     private double totValue;
     private int nVisits;
     private Random m_rnd;
@@ -32,21 +31,21 @@ public class SingleTreeNode
     private Types.ACTIONS[] actions;
 
     private GameState rootState;
-    private StateHeuristic rootStateHeuristic;
+    private CustomStateHeuristic rootStateHeuristic;
 
-    SingleTreeNode(MCTSParams p, Random rnd, int num_actions, Types.ACTIONS[] actions,int objective) {
+    CustomSingleTreeNode(CustomMCTSParams p, Random rnd, int num_actions, Types.ACTIONS[] actions, int objective) {
         this(p, null, -1, rnd, num_actions, actions, 0, null,objective);
     }
 
-    private SingleTreeNode(MCTSParams p, SingleTreeNode parent, int childIdx, Random rnd, int num_actions,
-                           Types.ACTIONS[] actions, int fmCallsCount, StateHeuristic sh,int objective) {
+    private CustomSingleTreeNode(CustomMCTSParams p, CustomSingleTreeNode parent, int childIdx, Random rnd, int num_actions,
+                                 Types.ACTIONS[] actions, int fmCallsCount, CustomStateHeuristic sh, int objective) {
         this.params = p;
         this.fmCallsCount = fmCallsCount;
         this.parent = parent;
         this.m_rnd = rnd;
         this.num_actions = num_actions;
         this.actions = actions;
-        children = new SingleTreeNode[num_actions];
+        children = new CustomSingleTreeNode[num_actions];
         totValue = 0.0;
         this.childIdx = childIdx;
         this.objective = objective;
@@ -61,10 +60,13 @@ public class SingleTreeNode
     void setRootGameState(GameState gs)
     {
         this.rootState = gs;
-        if (params.heuristic_method == params.CUSTOM_HEURISTIC)
-            this.rootStateHeuristic = new CustomHeuristic(gs);
-        else if (params.heuristic_method == params.ADVANCED_HEURISTIC) // New method: combined heuristics
-            this.rootStateHeuristic = new AdvancedHeuristic(gs, m_rnd);
+//        if (params.heuristic_method == params.CUSTOM_HEURISTIC)
+//            this.rootStateHeuristic = new CustomHeuristic(gs);
+//        else if (params.heuristic_method == params.ADVANCED_HEURISTIC) // New method: combined heuristics
+//            this.rootStateHeuristic = new AdvancedHeuristic(gs, m_rnd);
+        if (params.heuristic_method == params.MULTI_OBJECTIVE_HEURISTIC)
+            this.rootStateHeuristic = new MultiObjectiveHeuristicCustom(gs);
+
     }
 
 
@@ -82,7 +84,7 @@ public class SingleTreeNode
 
             GameState state = rootState.copy();
             ElapsedCpuTimer elapsedTimerIteration = new ElapsedCpuTimer();
-            SingleTreeNode selected = treePolicy(state);
+            CustomSingleTreeNode selected = treePolicy(state);
             double delta = selected.rollOut(state);
             backUp(selected, delta);
 
@@ -105,9 +107,9 @@ public class SingleTreeNode
         //System.out.println(" ITERS " + numIters);
     }
 
-    private SingleTreeNode treePolicy(GameState state) {
+    private CustomSingleTreeNode treePolicy(GameState state) {
 
-        SingleTreeNode cur = this;
+        CustomSingleTreeNode cur = this;
 
         while (!state.isTerminal() && cur.m_depth < params.rollout_depth)
         {
@@ -123,7 +125,7 @@ public class SingleTreeNode
     }
 
 
-    private SingleTreeNode expand(GameState state) {
+    private CustomSingleTreeNode expand(GameState state) {
 
         int bestAction = 0;
         double bestValue = -1;
@@ -139,7 +141,7 @@ public class SingleTreeNode
         //Roll the state
         roll(state, actions[bestAction]);
 
-        SingleTreeNode tn = new SingleTreeNode(params,this,bestAction,this.m_rnd,num_actions,
+        CustomSingleTreeNode tn = new CustomSingleTreeNode(params,this,bestAction,this.m_rnd,num_actions,
                 actions, fmCallsCount, rootStateHeuristic,this.objective);
         children[bestAction] = tn;
         return tn;
@@ -167,10 +169,10 @@ public class SingleTreeNode
 
     }
 
-    private SingleTreeNode uct(GameState state) {
-        SingleTreeNode selected = null;
+    private CustomSingleTreeNode uct(GameState state) {
+        CustomSingleTreeNode selected = null;
         double bestValue = -Double.MAX_VALUE;
-        for (SingleTreeNode child : this.children)
+        for (CustomSingleTreeNode child : this.children)
         {
             double hvVal = child.totValue;
             double childValue =  hvVal / (child.nVisits + params.epsilon);
@@ -200,8 +202,7 @@ public class SingleTreeNode
         return selected;
     }
 
-    private double rollOut(GameState state)
-    {
+    private double rollOut(GameState state)  {
         int thisDepth = this.m_depth;
 
         while (!finishRollout(state,thisDepth)) {
@@ -210,7 +211,7 @@ public class SingleTreeNode
             thisDepth++;
         }
 
-        return rootStateHeuristic.evaluateState(state);
+        return rootStateHeuristic.evaluateState(state,this.objective);
     }
 
     private int safeRandomAction(GameState state)
@@ -253,9 +254,9 @@ public class SingleTreeNode
         return false;
     }
 
-    private void backUp(SingleTreeNode node, double result)
+    private void backUp(CustomSingleTreeNode node, double result)
     {
-        SingleTreeNode n = node;
+        CustomSingleTreeNode n = node;
         while(n != null)
         {
             n.nVisits++;
@@ -337,7 +338,7 @@ public class SingleTreeNode
 
 
     private boolean notFullyExpanded() {
-        for (SingleTreeNode tn : children) {
+        for (CustomSingleTreeNode tn : children) {
             if (tn == null) {
                 return true;
             }

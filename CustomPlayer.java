@@ -1,11 +1,6 @@
 package players.CustomAgent;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import core.GameState;
-import objects.Bomb;
-import players.CustomAgent.MCTSParams;
-import players.CustomAgent.CustomPlayer;
-import players.CustomAgent.SingleTreeNode;
 import players.optimisers.ParameterizedPlayer;
 import players.Player;
 import utils.ElapsedCpuTimer;
@@ -30,20 +25,20 @@ public class CustomPlayer extends ParameterizedPlayer {
     /**
      * Params for this MCTS
      */
-    public MCTSParams params;
+    public CustomMCTSParams params;
 
     // custom made parameters
     private int safetythreshold=10;
 
     public CustomPlayer(long seed, int id) {
-        this(seed, id, new MCTSParams(),10);
+        this(seed, id, new CustomMCTSParams(),10);
     }
 
     public CustomPlayer(long seed, int id, int safetythreshold) {
-        this(seed, id, new MCTSParams(),safetythreshold);
+        this(seed, id, new CustomMCTSParams(),safetythreshold);
     }
 
-    public CustomPlayer(long seed, int id, MCTSParams params,int safetythreshold) {
+    public CustomPlayer(long seed, int id, CustomMCTSParams params, int safetythreshold) {
         super(seed, id, params);
         reset(seed, id);
 
@@ -61,15 +56,15 @@ public class CustomPlayer extends ParameterizedPlayer {
         super.reset(seed, playerID);
         m_rnd = new Random(seed);
 
-        this.params = (MCTSParams) getParameters();
+        this.params = (CustomMCTSParams) getParameters();
         if (this.params == null) {
-            this.params = new MCTSParams();
+            this.params = new CustomMCTSParams();
             super.setParameters(this.params);
         }
     }
 
     @Override
-    public Types.ACTIONS act(GameState gs) {
+    public Types.ACTIONS act(GameState gs)  {
         // TODO update gs
         if (gs.getGameMode().equals(Types.GAME_MODE.TEAM_RADIO)){
             int[] msg = gs.getMessage();
@@ -83,9 +78,11 @@ public class CustomPlayer extends ParameterizedPlayer {
 
         // identify the objective we are trying to achive from this game state
         int objective = identifyObjective(gs);
-        //System.out.println("this is the objective : " + objective);
+        //TODO: depending on the objective ... modify params
+        //System.out.println("check " + (params.heuristic_method == params.MULTI_OBJECTIVE_HEURISTIC));
         // Root of the tree
-        SingleTreeNode m_root = new SingleTreeNode(params, m_rnd, num_actions, actions,objective);
+        System.out.println("this is the ammo" + gs.getAmmo());
+        CustomSingleTreeNode m_root = new CustomSingleTreeNode(params, m_rnd, num_actions, actions,objective);
         m_root.setRootGameState(gs);
 
         //Determine the action using MCTS...
@@ -133,7 +130,7 @@ private boolean evaluateSafety(GameState gs,int safetythreshold) {
         for (int y = 0; y < boardSizeY; y++) {
             Types.TILETYPE type = board[y][x];
 
-            if(type == Types.TILETYPE.BOMB) {
+            if(type == Types.TILETYPE.BOMB || type == Types.TILETYPE.FLAMES) {
                 threats.add(new Vector2d(x, y)); // add the position of the bomb
             }else if(Types.TILETYPE.getAgentTypes().contains(type) &&
                     type.getKey() != gs.getPlayerId()) // maybe an enemmy

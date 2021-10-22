@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @SuppressWarnings("WeakerAccess")
-public class MCTSParams implements ParameterSet {
+public class CustomMCTSParams implements ParameterSet {
 
     // Constants
     public final double HUGE_NEGATIVE = -1000;
@@ -20,13 +20,14 @@ public class MCTSParams implements ParameterSet {
 
     public final int CUSTOM_HEURISTIC = 0;
     public final int ADVANCED_HEURISTIC = 1;
+    public final int MULTI_OBJECTIVE_HEURISTIC = 2;
 
     public double epsilon = 1e-6;
 
     // Parameters
     public double K = Math.sqrt(2);
     public int rollout_depth = 8;//10;
-    public int heuristic_method = CUSTOM_HEURISTIC;
+    public int heuristic_method = MULTI_OBJECTIVE_HEURISTIC;
 
     // Budget settings
     public int stop_type = STOP_TIME;
@@ -67,7 +68,7 @@ public class MCTSParams implements ParameterSet {
         HashMap<String, Object[]> parameterValues = new HashMap<>();
         parameterValues.put("K", new Double[]{1.0, Math.sqrt(2), 2.0});
         parameterValues.put("rollout_depth", new Integer[]{5, 8, 10, 12, 15});
-        parameterValues.put("heuristic_method", new Integer[]{CUSTOM_HEURISTIC, ADVANCED_HEURISTIC});
+        parameterValues.put("heuristic_method", new Integer[]{CUSTOM_HEURISTIC, ADVANCED_HEURISTIC,MULTI_OBJECTIVE_HEURISTIC});
         return parameterValues;
     }
 
@@ -84,7 +85,7 @@ public class MCTSParams implements ParameterSet {
     @Override
     public Map<String, String[]> constantNames() {
         HashMap<String, String[]> names = new HashMap<>();
-        names.put("heuristic_method", new String[]{"CUSTOM_HEURISTIC", "ADVANCED_HEURISTIC"});
+        names.put("heuristic_method", new String[]{"CUSTOM_HEURISTIC", "ADVANCED_HEURISTIC","MULTI_OBJECTIVE_HEURISTIC"});
         return names;
     }
 }
