@@ -82,17 +82,17 @@ public class CustomPlayer extends ParameterizedPlayer {
         //System.out.println(objective);
         switch (objective){
             case 0: // pure_safety
-                params.rollout_depth=20005;
+                params.rollout_depth=10;
                 break;
                 case 1: // pure_power_up_collection
-                    params.rollout_depth=10000;
+                    params.rollout_depth=10;
                     break;
             case 2: // endgame tactic
-                params.rollout_depth=700000;
+                params.rollout_depth=12;
                 params.heuristic_method = params.ADVANCED_HEURISTIC;
                 break;
             case 3: // mid game tactic
-                params.rollout_depth = 10005;
+                params.rollout_depth = 8;
                 break;
 
         }
@@ -119,11 +119,11 @@ public class CustomPlayer extends ParameterizedPlayer {
         // 1:pure_powerUpCollection
         // 2: end game
         // 3: mid game
-        Boolean is_safe = evaluateSafety(gs,4); // returns True if no threat is nearby, false otherwise
+        Boolean is_safe = evaluateSafety(gs,3); // returns True if no threat is nearby, false otherwise
         //System.out.println(is_safe);
-        if (is_safe && gs.getTick() <200) // if safe and at beginning of game .. objective => pure power up collection
+        if (is_safe && gs.getTick() <250) // if safe and at beginning of game .. objective => pure power up collection
             return 1;
-        else if (!is_safe && gs.getTick() <200) // if not safe and beginning of the game .. objective => pure safety
+        else if (!is_safe && gs.getTick() <250) // if not safe and beginning of the game .. objective => pure safety
             return 0;
         else if (gs.getTick()>600) // end of the game ... objective => end game tactic
             return 2;
@@ -151,14 +151,14 @@ private boolean evaluateSafety(GameState gs,int safetythreshold) {
 
             if(type == Types.TILETYPE.BOMB || type == Types.TILETYPE.FLAMES) {
                 threats.add(new Vector2d(x, y)); // add the position of the bomb
-            }else if(Types.TILETYPE.getAgentTypes().contains(type) &&
+            }/*else if(Types.TILETYPE.getAgentTypes().contains(type) &&
                     type.getKey() != gs.getPlayerId()) // maybe an enemmy
             {
                 if(enemiesObs.contains(type)) // it is an enemy
                 {
                     threats.add(new Vector2d(x, y)); // add the position of the enemy
                 }
-            }
+            }*/
         }
     }
 

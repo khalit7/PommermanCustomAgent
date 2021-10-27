@@ -11,6 +11,8 @@ import utils.Utils;
 import utils.Vector2d;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 public class CustomSingleTreeNode
@@ -210,12 +212,62 @@ public class CustomSingleTreeNode
         int thisDepth = this.m_depth;
 
         while (!finishRollout(state,thisDepth)) {
-            int action = safeRandomAction(state);
+            //int action = safeRandomAction(state);
+            int action = biasedAction(state); // biasing rollouts
             roll(state, actions[action]);
             thisDepth++;
         }
 
         return rootStateHeuristic.evaluateState(state,this.objective);
+    }
+private int biasedAction(GameState gs) {
+    ArrayList<Types.ACTIONS> actionsToTry = getViableActions(gs); // returns actions that dosen't kill you nor make u try to go through the wall
+    HashMap<Types.ACTIONS, Double> actions_Values = new HashMap<Types.ACTIONS, Double>();
+        double max_value = -10000; // large arbitrary negative number
+        for (int i =0; i<actionsToTry.size();i++){
+            GameState gsCopy = gs.copy();
+            roll(gsCopy,actionsToTry.get(i));
+            double stateEvaluation = rootStateHeuristic.evaluateState(gsCopy,objective);
+            actions_Values.put(actionsToTry.get(i),stateEvaluation);
+            if (stateEvaluation > max_value) {
+                max_value = stateEvaluation;
+            }
+        }
+        // get all actions with value = max_value
+    ArrayList<Types.ACTIONS> best_Actions = new  ArrayList<Types.ACTIONS>();
+    for (Map.Entry<Types.ACTIONS, Double> entry : actions_Values.entrySet()) {
+        Types.ACTIONS action = entry.getKey();
+        double value = entry.getValue();
+        if (value == max_value) best_Actions.add(action);
+    }
+
+    //chose randomly between best actions
+        return best_Actions.get(m_rnd.nextInt(best_Actions.size())).getKey();
+}
+    private ArrayList<Types.ACTIONS> getViableActions(GameState state)
+    {
+        Types.TILETYPE[][] board = state.getBoard();
+        ArrayList<Types.ACTIONS> allActions = Types.ACTIONS.all();
+        int width = board.length;
+        int height = board[0].length;
+
+        for (int i=0;i<allActions.size();i++){
+
+            Types.ACTIONS act = allActions.get(i);
+            Vector2d dir = act.getDirection().toVec();
+
+            Vector2d pos = state.getPosition();
+            int x = pos.x + dir.x;
+            int y = pos.y + dir.y;
+
+            if (x >= 0 && x < width && y >= 0 && y < height)
+                if(board[y][x] != Types.TILETYPE.FLAMES) {
+                    continue;
+                }
+
+            allActions.remove(i);
+        }
+        return allActions;
     }
 
     private int safeRandomAction(GameState state)

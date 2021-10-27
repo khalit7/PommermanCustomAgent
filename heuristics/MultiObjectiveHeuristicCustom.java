@@ -90,10 +90,8 @@ public class MultiObjectiveHeuristicCustom extends CustomStateHeuristic {
                 score = -1;
             if(gameOver && win == Types.RESULT.WIN) // if you win
                 score = 1;
-            if (gameOver&&win == Types.RESULT.TIE) // if it is a tie
-                score = 0.0;
-            if (win == Types.RESULT.INCOMPLETE) // give score if still alive
-                score =0.1;
+            /*if (win == Types.RESULT.INCOMPLETE) // give score if still alive
+                score =0.1;*/
             return score;
         }
         private double powerUpHeuristicEvaluation(MultiObjectiveHeuristicCustom.BoardStats futureState){
