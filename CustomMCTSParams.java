@@ -26,7 +26,7 @@ public class CustomMCTSParams implements ParameterSet {
 
     // Parameters
     public double K = Math.sqrt(2);
-    public int rollout_depth = 8;//10;
+    public int rollout_depth = 10;//10;
     public int heuristic_method = MULTI_OBJECTIVE_HEURISTIC;
 
     // Budget settings

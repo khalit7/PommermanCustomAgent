@@ -79,9 +79,26 @@ public class CustomPlayer extends ParameterizedPlayer {
         // identify the objective we are trying to achive from this game state
         int objective = identifyObjective(gs);
         //TODO: depending on the objective ... modify params
+        //System.out.println(objective);
+        switch (objective){
+            case 0: // pure_safety
+                params.rollout_depth=20005;
+                break;
+                case 1: // pure_power_up_collection
+                    params.rollout_depth=10000;
+                    break;
+            case 2: // endgame tactic
+                params.rollout_depth=700000;
+                params.heuristic_method = params.ADVANCED_HEURISTIC;
+                break;
+            case 3: // mid game tactic
+                params.rollout_depth = 10005;
+                break;
+
+        }
         //System.out.println("check " + (params.heuristic_method == params.MULTI_OBJECTIVE_HEURISTIC));
         // Root of the tree
-        System.out.println("this is the ammo" + gs.getAmmo());
+
         CustomSingleTreeNode m_root = new CustomSingleTreeNode(params, m_rnd, num_actions, actions,objective);
         m_root.setRootGameState(gs);
 
@@ -90,6 +107,7 @@ public class CustomPlayer extends ParameterizedPlayer {
 
         //Determine the best action to take and return it.
         int action = m_root.mostVisitedAction();
+        //int action = m_root.bestAction();
 
         // TODO update message memory
 
@@ -97,21 +115,22 @@ public class CustomPlayer extends ParameterizedPlayer {
         return actions[action];
     }
     private int identifyObjective(GameState gs) {
-        // 0:safety
-        // 1:powerUpCollection
-        // 2: MCTS normal play with advanced heuristic
+        // 0:pure_safety
+        // 1:pure_powerUpCollection
+        // 2: end game
+        // 3: mid game
         Boolean is_safe = evaluateSafety(gs,4); // returns True if no threat is nearby, false otherwise
-        System.out.println(is_safe);
-        if (is_safe) return 1;
-        else // if not safe
-         {
-            // either seek shelter
-            // or fight back
-        // seek shelter ... maybe this happens at the beginning of the game or when I have no good powerups
-             return 0;
-         // fight back ... maybe towards the end of the game or if I have enough powerups
-           // return 2;
-        }
+        //System.out.println(is_safe);
+        if (is_safe && gs.getTick() <200) // if safe and at beginning of game .. objective => pure power up collection
+            return 1;
+        else if (!is_safe && gs.getTick() <200) // if not safe and beginning of the game .. objective => pure safety
+            return 0;
+        else if (gs.getTick()>600) // end of the game ... objective => end game tactic
+            return 2;
+        else  // middle of the game ... mid game tactic
+            return 3;
+
+
 
 
     }

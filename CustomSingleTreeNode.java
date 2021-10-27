@@ -2,7 +2,9 @@ package players.CustomAgent;
 
 import core.GameState;
 import players.CustomAgent.heuristics.MultiObjectiveHeuristicCustom;
+import players.CustomAgent.heuristics.CustomAdvancedHeuristic;
 import players.CustomAgent.heuristics.CustomStateHeuristic;
+import players.heuristics.AdvancedHeuristic;
 import utils.ElapsedCpuTimer;
 import utils.Types;
 import utils.Utils;
@@ -66,6 +68,8 @@ public class CustomSingleTreeNode
 //            this.rootStateHeuristic = new AdvancedHeuristic(gs, m_rnd);
         if (params.heuristic_method == params.MULTI_OBJECTIVE_HEURISTIC)
             this.rootStateHeuristic = new MultiObjectiveHeuristicCustom(gs);
+        else if (params.heuristic_method == params.ADVANCED_HEURISTIC)
+            this.rootStateHeuristic = new CustomAdvancedHeuristic(gs,m_rnd);
 
     }
 
@@ -310,7 +314,7 @@ public class CustomSingleTreeNode
         return selected;
     }
 
-    private int bestAction()
+    public int bestAction()
     {
         int selected = -1;
         double bestValue = -Double.MAX_VALUE;
