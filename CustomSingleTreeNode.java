@@ -4,7 +4,7 @@ import core.GameState;
 import players.CustomAgent.heuristics.MultiObjectiveHeuristicCustom;
 import players.CustomAgent.heuristics.CustomAdvancedHeuristic;
 import players.CustomAgent.heuristics.CustomStateHeuristic;
-import players.heuristics.AdvancedHeuristic;
+import players.CustomAgent.heuristics.ProgressiveBiasHeuristics;
 import utils.ElapsedCpuTimer;
 import utils.Types;
 import utils.Utils;
@@ -31,6 +31,8 @@ public class CustomSingleTreeNode
     private int fmCallsCount;
     private int objective;
 
+    private double selection_bias_value; // this will hold the value for progressive bias.
+
     private int num_actions;
     private Types.ACTIONS[] actions;
 
@@ -53,6 +55,7 @@ public class CustomSingleTreeNode
         totValue = 0.0;
         this.childIdx = childIdx;
         this.objective = objective;
+
         if(parent != null) {
             m_depth = parent.m_depth + 1;
             this.rootStateHeuristic = sh;
@@ -120,17 +123,22 @@ public class CustomSingleTreeNode
         while (!state.isTerminal() && cur.m_depth < params.rollout_depth)
         {
             if (cur.notFullyExpanded()) {
-                return cur.expand(state);
+                return cur.expand(state); // expansion step
 
             } else {
-                cur = cur.uct(state);
+                calculate_progressive_bias(cur); // assign progressive bias heuristic value
+                cur = cur.uct(state); // selection step
             }
         }
 
         return cur;
     }
 
-
+    private void calculate_progressive_bias(CustomSingleTreeNode currentNode)
+    {
+     // first calculate Dijkstra if needed
+        // then select which progressive bias heuristic u r choosing
+    }
     private CustomSingleTreeNode expand(GameState state) {
 
         int bestAction = 0;
@@ -143,7 +151,6 @@ public class CustomSingleTreeNode
                 bestValue = x;
             }
         }
-
         //Roll the state
         roll(state, actions[bestAction]);
 
@@ -182,11 +189,14 @@ public class CustomSingleTreeNode
         {
             double hvVal = child.totValue;
             double childValue =  hvVal / (child.nVisits + params.epsilon);
+            double progressive_bias = this.selection_bias_value/ (1+ child.nVisits);
+
 
             childValue = Utils.normalise(childValue, bounds[0], bounds[1]);
 
             double uctValue = childValue +
-                    params.K * Math.sqrt(Math.log(this.nVisits + 1) / (child.nVisits + params.epsilon));
+                    params.K * Math.sqrt(Math.log(this.nVisits + 1) / (child.nVisits + params.epsilon)) +
+                    progressive_bias;
 
             uctValue = Utils.noise(uctValue, params.epsilon, this.m_rnd.nextDouble());     //break ties randomly
 
