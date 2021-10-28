@@ -7,6 +7,7 @@ import utils.Types;
 
 public class MultiObjectiveHeuristicCustom extends CustomStateHeuristic {
     private MultiObjectiveHeuristicCustom.BoardStats rootBoardStats;
+
     public MultiObjectiveHeuristicCustom(GameState root_gs){
         rootBoardStats = new MultiObjectiveHeuristicCustom.BoardStats(root_gs);
     }
@@ -73,7 +74,7 @@ public class MultiObjectiveHeuristicCustom extends CustomStateHeuristic {
                 case 0: // objective is safety
                     return safetyHeuristicEvaluation(gs);
                 case 1: // objective is power up collection
-                    return powerUpHeuristicEvaluation(futureState);
+                    return powerUpHeuristicEvaluation(futureState,gs);
                 case 3: // objective is : mid game tactic
                     return midGameHeuristicEvaluation(futureState,gs);
                 default:
@@ -94,7 +95,7 @@ public class MultiObjectiveHeuristicCustom extends CustomStateHeuristic {
                 score =0.1;*/
             return score;
         }
-        private double powerUpHeuristicEvaluation(MultiObjectiveHeuristicCustom.BoardStats futureState){
+        private double powerUpHeuristicEvaluation(MultiObjectiveHeuristicCustom.BoardStats futureState,GameState gs){
             int diffWoods = - (futureState.nWoods - this.nWoods);
             int diffCanKick = futureState.canKick ? 1 : 0;
             if (this.canKick) {

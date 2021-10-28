@@ -126,7 +126,7 @@ public class CustomSingleTreeNode
                 return cur.expand(state); // expansion step
 
             } else {
-                calculate_progressive_bias(cur); // assign progressive bias heuristic value
+                calculate_progressive_bias(cur); // assign progressive bias heuristic value for all children of cur
                 cur = cur.uct(state); // selection step
             }
         }
