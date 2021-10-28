@@ -1,8 +1,15 @@
 package players.CustomAgent.heuristics;
 
 import core.GameState;
+import objects.Bomb;
+import objects.GameObject;
+import players.CustomAgent.Djikstra;
 import utils.Types;
-
+import utils.Vector2d;
+import players.CustomAgent.Djikstra.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 
 
 public class MultiObjectiveHeuristicCustom extends CustomStateHeuristic {
@@ -96,6 +103,51 @@ public class MultiObjectiveHeuristicCustom extends CustomStateHeuristic {
             return score;
         }
         private double powerUpHeuristicEvaluation(MultiObjectiveHeuristicCustom.BoardStats futureState,GameState gs){
+
+
+
+            Vector2d myPosition = gs.getPosition();
+
+            Types.TILETYPE[][] board = gs.getBoard();
+            int[][] bombBlastStrength = gs.getBombBlastStrength();
+            int[][] bombLife = gs.getBombLife();
+
+            int ammo = gs.getAmmo();
+            int blastStrength = gs.getBlastStrength();
+
+            ArrayList<Types.TILETYPE> enemiesObs = gs.getAliveEnemyIDs();
+
+            int boardSizeX = board.length;
+            int boardSizeY = board[0].length;
+
+            ArrayList<GameObject> powerups = new ArrayList<>();
+
+            for (int x = 0; x < boardSizeX; x++) {
+                for (int y = 0; y < boardSizeY; y++) {
+
+                    Types.TILETYPE type = board[y][x];
+
+                    if(type == Types.TILETYPE.EXTRABOMB || type == Types.TILETYPE.INCRRANGE || type == Types.TILETYPE.KICK){
+                        // Create bomb object
+                        GameObject powerup = new GameObject(type);
+                        powerup.setPosition(new Vector2d(x, y));
+                        powerups.add(powerup);
+                    }
+
+                }
+            }
+
+            Container from_dijkstra = Djikstra.dijkstra(board, myPosition, powerups, 10);
+            HashMap<Types.TILETYPE, ArrayList<Vector2d>> items = from_dijkstra.items;
+            Iterator it;
+            HashMap<Vector2d, Integer> dist = from_dijkstra.dist;
+            HashMap<Vector2d, Vector2d> prev = from_dijkstra.prev;
+
+            System.out.println(items);
+
+
+
+
             int diffWoods = - (futureState.nWoods - this.nWoods);
             int diffCanKick = futureState.canKick ? 1 : 0;
             if (this.canKick) {
