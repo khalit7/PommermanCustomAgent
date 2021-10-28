@@ -1,4 +1,4 @@
-package players.CustomAgent;
+package players.PommermanCustomAgent;
 
 import core.GameState;
 import players.optimisers.ParameterizedPlayer;

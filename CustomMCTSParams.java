@@ -1,4 +1,4 @@
-package players.CustomAgent;
+package players.PommermanCustomAgent;
 
 import players.optimisers.ParameterSet;
 import utils.Pair;

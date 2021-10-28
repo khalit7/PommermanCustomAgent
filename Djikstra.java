@@ -1,4 +1,4 @@
-package players.CustomAgent;
+package players.PommermanCustomAgent;
 
 import objects.Bomb;
 import objects.GameObject;

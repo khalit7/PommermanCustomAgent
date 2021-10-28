@@ -1,4 +1,4 @@
-package players.CustomAgent.heuristics;
+package players.PommermanCustomAgent.heuristics;
 
 import core.GameState;
 import utils.Types;

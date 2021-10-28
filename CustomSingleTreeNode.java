@@ -1,9 +1,9 @@
-package players.CustomAgent;
+package players.PommermanCustomAgent;
 
 import core.GameState;
-import players.CustomAgent.heuristics.MultiObjectiveHeuristicCustom;
-import players.CustomAgent.heuristics.CustomAdvancedHeuristic;
-import players.CustomAgent.heuristics.CustomStateHeuristic;
+import players.PommermanCustomAgent.heuristics.MultiObjectiveHeuristicCustom;
+import players.PommermanCustomAgent.heuristics.CustomAdvancedHeuristic;
+import players.PommermanCustomAgent.heuristics.CustomStateHeuristic;
 import players.CustomAgent.heuristics.ProgressiveBiasHeuristics;
 import utils.ElapsedCpuTimer;
 import utils.Types;
