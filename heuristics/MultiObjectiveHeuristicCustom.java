@@ -3,13 +3,16 @@ package players.PommermanCustomAgent.heuristics;
 import core.GameState;
 import objects.Bomb;
 import objects.GameObject;
-import players.CustomAgent.Djikstra;
+import players.PommermanCustomAgent.Djikstra;
 import utils.Types;
 import utils.Vector2d;
-import players.CustomAgent.Djikstra.*;
+import players.PommermanCustomAgent.Djikstra.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+
+import static java.lang.Math.max;
+import static java.lang.Math.min;
 
 
 public class MultiObjectiveHeuristicCustom extends CustomStateHeuristic {
@@ -34,8 +37,11 @@ public class MultiObjectiveHeuristicCustom extends CustomStateHeuristic {
         boolean canKick;
         int nWoods;
         int ammo;
+        int closestPowerUpDistance;
+        int closestWoodDistance;
         static double maxWoods = -1;
         static double maxBlastStrength = 10;
+
 
 
 
@@ -65,6 +71,40 @@ public class MultiObjectiveHeuristicCustom extends CustomStateHeuristic {
             if (maxWoods == -1) {
                 maxWoods = nWoods;
             }
+
+
+            ////
+            Vector2d myPosition = gs.getPosition();
+            Types.TILETYPE[][] board = gs.getBoard();
+            int depth = 10;
+            int closestPowerUpDistance=10000;
+            int closestWoodDistance=10000;
+            // get closest powerup using Manhattan distance
+            for(int x = max(0, myPosition.x - depth); x < min(board.length, myPosition.x + depth); x++){
+                for(int y = max(0, myPosition.y - depth); y < min(board.length, myPosition.y + depth); y++){
+
+                    Types.TILETYPE type = board[y][x];
+
+                    if( type == Types.TILETYPE.EXTRABOMB ||
+                            type == Types.TILETYPE.INCRRANGE ||
+                            (type == Types.TILETYPE.KICK && this.canKick ==false )){
+
+                        Vector2d distVector = new Vector2d(Math.abs(myPosition.x-x),Math.abs(myPosition.y-y));
+                        int manhattanDisatance = Math.abs(distVector.x) + Math.abs(distVector.y);
+                        if (manhattanDisatance < closestPowerUpDistance) closestPowerUpDistance =manhattanDisatance;
+                    }
+                    if( type == Types.TILETYPE.WOOD ){
+
+                        Vector2d distVector = new Vector2d(Math.abs(myPosition.x-x),Math.abs(myPosition.y-y));
+                        int manhattanDisatance = Math.abs(distVector.x) + Math.abs(distVector.y);
+                        if (manhattanDisatance < closestWoodDistance) closestWoodDistance =manhattanDisatance;
+                    }
+
+                }
+            }
+            this.closestPowerUpDistance = closestPowerUpDistance;
+            this.closestWoodDistance = closestWoodDistance;
+            ////
         }
 
         /**
@@ -81,7 +121,7 @@ public class MultiObjectiveHeuristicCustom extends CustomStateHeuristic {
                 case 0: // objective is safety
                     return safetyHeuristicEvaluation(gs);
                 case 1: // objective is power up collection
-                    return powerUpHeuristicEvaluation(futureState,gs);
+                    return powerUpHeuristicEvaluation(futureState);
                 case 3: // objective is : mid game tactic
                     return midGameHeuristicEvaluation(futureState,gs);
                 default:
@@ -102,64 +142,25 @@ public class MultiObjectiveHeuristicCustom extends CustomStateHeuristic {
                 score =0.1;*/
             return score;
         }
-        private double powerUpHeuristicEvaluation(MultiObjectiveHeuristicCustom.BoardStats futureState,GameState gs){
+        private double powerUpHeuristicEvaluation(MultiObjectiveHeuristicCustom.BoardStats futureState){
 
 
-
-            Vector2d myPosition = gs.getPosition();
-
-            Types.TILETYPE[][] board = gs.getBoard();
-            int[][] bombBlastStrength = gs.getBombBlastStrength();
-            int[][] bombLife = gs.getBombLife();
-
-            int ammo = gs.getAmmo();
-            int blastStrength = gs.getBlastStrength();
-
-            ArrayList<Types.TILETYPE> enemiesObs = gs.getAliveEnemyIDs();
-
-            int boardSizeX = board.length;
-            int boardSizeY = board[0].length;
-
-            ArrayList<GameObject> powerups = new ArrayList<>();
-
-            for (int x = 0; x < boardSizeX; x++) {
-                for (int y = 0; y < boardSizeY; y++) {
-
-                    Types.TILETYPE type = board[y][x];
-
-                    if(type == Types.TILETYPE.EXTRABOMB || type == Types.TILETYPE.INCRRANGE || type == Types.TILETYPE.KICK){
-                        // Create bomb object
-                        GameObject powerup = new GameObject(type);
-                        powerup.setPosition(new Vector2d(x, y));
-                        powerups.add(powerup);
-                    }
-
-                }
+            int powerUpAvailable = 1;
+            if (this.closestPowerUpDistance > 500) // arbitrary large value
+            {
+                powerUpAvailable = 0;
             }
-
-            Container from_dijkstra = Djikstra.dijkstra(board, myPosition, powerups, 10);
-            HashMap<Types.TILETYPE, ArrayList<Vector2d>> items = from_dijkstra.items;
-            Iterator it;
-            HashMap<Vector2d, Integer> dist = from_dijkstra.dist;
-            HashMap<Vector2d, Vector2d> prev = from_dijkstra.prev;
-
-            System.out.println(items);
-
-
-
-
-            int diffWoods = - (futureState.nWoods - this.nWoods);
-            int diffCanKick = futureState.canKick ? 1 : 0;
-            if (this.canKick) {
-                diffCanKick =  0;
+            int woodAvailable = 1;
+            if (this.closestWoodDistance > 500) // arbitrary large value
+            {
+                woodAvailable = 0;
             }
-            int diffBlastStrength = futureState.blastStrength - this.blastStrength;
+            double diffWoods = - (futureState.nWoods - this.nWoods);
+            double diffPowerUpDistance = this.closestPowerUpDistance - futureState.closestPowerUpDistance ;
+            double diffWoodDistance = this.closestWoodDistance - futureState.closestWoodDistance;
 
-            double FACTOR_WOODS = 0.2;
-            double FACTOR_CANKCIK = 0.4;
-            double FACTOR_BLAST = 0.4;
-            return (diffWoods / maxWoods) * FACTOR_WOODS
-                    + diffCanKick * FACTOR_CANKCIK + (diffBlastStrength / maxBlastStrength) * FACTOR_BLAST;
+
+            return (diffWoods / maxWoods) * (1-powerUpAvailable) + diffWoodDistance*(1-powerUpAvailable) +powerUpAvailable*(diffPowerUpDistance/10);
         }
         private double midGameHeuristicEvaluation (MultiObjectiveHeuristicCustom.BoardStats futureState , GameState gs) {
             int diffWoods = - (futureState.nWoods - this.nWoods);

@@ -4,7 +4,7 @@ import core.GameState;
 import players.PommermanCustomAgent.heuristics.MultiObjectiveHeuristicCustom;
 import players.PommermanCustomAgent.heuristics.CustomAdvancedHeuristic;
 import players.PommermanCustomAgent.heuristics.CustomStateHeuristic;
-import players.CustomAgent.heuristics.ProgressiveBiasHeuristics;
+import players.PommermanCustomAgent.heuristics.ProgressiveBiasHeuristics;
 import utils.ElapsedCpuTimer;
 import utils.Types;
 import utils.Utils;

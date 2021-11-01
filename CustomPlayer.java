@@ -1,14 +1,21 @@
 package players.PommermanCustomAgent;
 
 import core.GameState;
+import objects.Bomb;
+import objects.GameObject;
+import players.SimplePlayer;
 import players.optimisers.ParameterizedPlayer;
 import players.Player;
 import utils.ElapsedCpuTimer;
 import utils.Types;
 import utils.Vector2d;
 
-import java.util.ArrayList;
-import java.util.Random;
+import java.util.*;
+
+import static java.lang.Math.max;
+import static java.lang.Math.min;
+import static utils.Utils.directionToAction;
+import static utils.Utils.getDirection;
 
 public class CustomPlayer extends ParameterizedPlayer {
 
@@ -29,6 +36,8 @@ public class CustomPlayer extends ParameterizedPlayer {
 
     // custom made parameters
     private int safetythreshold=10;
+
+    private boolean justLayedBoomb=false;
 
     public CustomPlayer(long seed, int id) {
         this(seed, id, new CustomMCTSParams(),10);
@@ -85,8 +94,7 @@ public class CustomPlayer extends ParameterizedPlayer {
                 params.rollout_depth=10;
                 break;
                 case 1: // pure_power_up_collection
-                    params.rollout_depth=10;
-                    break;
+                    return ruleBasedAction(gs);
             case 2: // endgame tactic
                 params.rollout_depth=12;
                 params.heuristic_method = params.ADVANCED_HEURISTIC;
@@ -114,6 +122,80 @@ public class CustomPlayer extends ParameterizedPlayer {
         //... and return it.
         return actions[action];
     }
+    public Types.ACTIONS ruleBasedAction(GameState gs){
+        // get all power up positions
+        Vector2d myPosition = gs.getPosition();
+
+        Types.TILETYPE[][] board = gs.getBoard();
+        int ammo = gs.getAmmo();
+        ArrayList<Types.TILETYPE> enemiesObs = gs.getAliveEnemyIDs();
+
+        int boardSizeX = board.length;
+        int boardSizeY = board[0].length;
+        ArrayList<Vector2d> powerUpsPosition = new ArrayList<>();
+        ArrayList<Vector2d> woodsPosition = new ArrayList<>();
+
+        for (int x = 0; x < boardSizeX; x++) {
+            for (int y = 0; y < boardSizeY; y++) {
+
+                Types.TILETYPE type = board[y][x];
+                if (type == Types.TILETYPE.EXTRABOMB ||
+                        type == Types.TILETYPE.INCRRANGE ||
+                        type == Types.TILETYPE.KICK) {
+                    powerUpsPosition.add(new Vector2d(x,y));
+                }
+                else if (type == Types.TILETYPE.WOOD) woodsPosition.add(new Vector2d(x,y));
+
+            }
+        }
+        if (powerUpsPosition.size() > 0){
+            // pickup powerup
+            Vector2d closestPowerUp = getClosestItem(myPosition,powerUpsPosition);
+            if(closestPowerUp.dist(myPosition)<7) {
+                Vector2d nextNode = getNextNodeToDestination(closestPowerUp,myPosition);
+                return directionToAction(getDirection(myPosition, closestPowerUp));
+            }
+
+        }
+        // else
+            // go to wood
+            Vector2d closestWood = getClosestItem(myPosition,woodsPosition);
+            if(closestWood.dist(myPosition)>1) {
+                Vector2d nextNode = getNextNodeToDestination(closestWood,myPosition);
+                return directionToAction(getDirection(myPosition, closestWood));
+            }
+            else {
+                //lay bomb to destroy wood
+                this.justLayedBoomb = true;
+                return Types.ACTIONS.ACTION_BOMB;
+            }
+        }
+ArrayList<Vector2d> path = new ArrayList<>();
+    private Vector2d getNextNodeToDestination(Vector2d node , Vector2d myposition){
+
+        if(myposition.x<0 || myposition.y<0 || myposition.x>11 || myposition.y>11){
+            // out of board
+            return path.get(path.size()-1) ;
+        }
+        path.add(new Vector2d(myposition.x-1,myposition.y))
+        getNextNodeToDestination(node,new Vector2d(myposition.x-1,myposition.y) );
+        path.remove(path.size()-1);
+        getNextNodeToDestination(node,new Vector2d(myposition.x+1,myposition.y) );
+        getNextNodeToDestination(node,new Vector2d(myposition.x,myposition.y-1) );
+        getNextNodeToDestination(node,new Vector2d(myposition.x-1,myposition.y+1));
+        return new Vector2d();
+    }
+    private Vector2d getClosestItem(Vector2d myPosition,ArrayList<Vector2d>items) {
+        // BFS
+        List<Vector2d> q = new ArrayList<>();
+        q.add(myPosition);
+        List<Vector2d> visited = new ArrayList<>();
+        for (int i =0;i<11;i++){
+            for (int j=0;j<11;j++){
+
+            }
+        }
+    }
     private int identifyObjective(GameState gs) {
         // 0:pure_safety
         // 1:pure_powerUpCollection
@@ -135,6 +217,10 @@ public class CustomPlayer extends ParameterizedPlayer {
 
     }
 private boolean evaluateSafety(GameState gs,int safetythreshold) {
+        if(this.justLayedBoomb) {
+            this.justLayedBoomb=false;
+            return false;
+        }
     Vector2d myPosition = gs.getPosition();
 
     Types.TILETYPE[][] board = gs.getBoard();
@@ -187,3 +273,144 @@ private boolean evaluateSafety(GameState gs,int safetythreshold) {
     }
 
 }
+
+
+/*
+// 1) Initialise the required information off GameState
+        Vector2d myPosition = gs.getPosition();
+
+        Types.TILETYPE[][] board = gs.getBoard();
+        int[][] bombBlastStrength = gs.getBombBlastStrength();
+        int[][] bombLife = gs.getBombLife();
+
+        int ammo = gs.getAmmo();
+        int blastStrength = gs.getBlastStrength();
+
+        ArrayList<Types.TILETYPE> enemiesObs = gs.getAliveEnemyIDs();
+
+        int boardSizeX = board.length;
+        int boardSizeY = board[0].length;
+
+        ArrayList<Bomb> bombs = new ArrayList<>();
+        ArrayList<GameObject> enemies = new ArrayList<>();
+
+        for (int x = 0; x < boardSizeX; x++) {
+            for (int y = 0; y < boardSizeY; y++) {
+
+                Types.TILETYPE type = board[y][x];
+
+                if(type == Types.TILETYPE.BOMB || bombBlastStrength[y][x] > 0){
+                    // Create bomb object
+                    Bomb bomb = new Bomb();
+                    bomb.setPosition(new Vector2d(x, y));
+                    bomb.setBlastStrength(bombBlastStrength[y][x]);
+                    bomb.setLife(bombLife[y][x]);
+                    bombs.add(bomb);
+                }
+                else if(Types.TILETYPE.getAgentTypes().contains(type) &&
+                        type.getKey() != gs.getPlayerId()){ // May be an enemy
+                    if(enemiesObs.contains(type)) { // Is enemy
+                        // Create enemy object
+                        GameObject enemy = new GameObject(type);
+                        enemy.setPosition(new Vector2d(x, y));
+                        enemies.add(enemy); // no copy needed
+                    }
+                }
+            }
+        }
+        //
+        int depth = 10;
+        ArrayList<GameObject> powerUps = new ArrayList<>();
+        Djikstra.Container from_dijkstra = Djikstra.dijkstra(board, myPosition, bombs, enemies, 10);
+        HashMap<Types.TILETYPE, ArrayList<Vector2d>> items = from_dijkstra.items;
+        HashMap<Vector2d, Integer> dist = from_dijkstra.dist;
+        HashMap<Vector2d, Vector2d> prev = from_dijkstra.prev;
+        //  Move towards a pickup if there is one within two reachable spaces.
+        Iterator it;
+        it = items.entrySet().iterator();
+        Vector2d previousNode = new Vector2d(-1, -1); // placeholder, these values are not actually used
+        int distance = Integer.MAX_VALUE;
+        while (it.hasNext()){
+            Map.Entry<Types.TILETYPE, ArrayList<Vector2d> > entry = (Map.Entry)it.next();
+            // check pickup entries on the board
+            if (Types.TILETYPE.getPowerUpTypes().contains(entry.getKey())){
+                // no need to store just get closest
+                for (Vector2d coords: entry.getValue()){
+                    if (dist.get(coords) < distance){
+                        distance = dist.get(coords);
+                        previousNode = coords;
+                    }
+                }
+            }
+        }
+        if (distance <= 2){
+            // iterate until we get to the immadiate next node
+            if (myPosition.equals(previousNode)){
+                return directionToAction(getDirection(myPosition, previousNode));
+            }else
+            while (!myPosition.equals(prev.get(previousNode))){ ;
+                previousNode = prev.get(previousNode);
+            }
+            return directionToAction(getDirection(myPosition, previousNode));
+        }
+        // 6) Maybe lay a bomb if we are within a space of a wooden wall.
+        it = items.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<Types.TILETYPE, ArrayList<Vector2d>> entry = (Map.Entry) it.next();
+            // check pickup entries on the board
+            if (entry.getKey().equals(Types.TILETYPE.WOOD) ) {
+                // check the distance from the wooden planks
+                for (Vector2d coords: entry.getValue()){
+                    if (dist.get(coords) == 1){
+                        this.justLayedBoomb = true;
+                            return Types.ACTIONS.ACTION_BOMB;
+
+                    }
+                }
+                // 7) Move towards a wooden wall if there is one within two reachable spaces and you have a bomb.
+                if (ammo < 1) continue;
+                for (Vector2d coords:entry.getValue()){
+                    // max 2 reachable space
+                    if (dist.get(coords) <= 2){
+                        previousNode = coords;
+                        while (!myPosition.equals(prev.get(previousNode))){
+                            previousNode = prev.get(previousNode);
+                        }
+                        Types.DIRECTIONS direction = getDirection(myPosition, previousNode);
+                        if (direction != null){
+                            ArrayList<Types.DIRECTIONS> dirArray = new ArrayList<>();
+                            dirArray.add(direction);
+
+                            if (dirArray.size() > 0){
+                                return directionToAction(dirArray.get(0));
+                            }
+                        }
+
+
+                    }
+                }
+            }
+        }
+
+// 8) Choose a random but valid direction.
+        ArrayList<Types.DIRECTIONS> directions = new ArrayList<>();
+        directions.add(Types.DIRECTIONS.UP);
+        directions.add(Types.DIRECTIONS.DOWN);
+        directions.add(Types.DIRECTIONS.LEFT);
+        directions.add(Types.DIRECTIONS.RIGHT);
+        ArrayList<Types.DIRECTIONS> validDirections = filterInvalidDirections(board, myPosition, directions, enemies);
+        validDirections = filterUnsafeDirections(myPosition, validDirections, bombs );
+        validDirections = filterRecentlyVisited(validDirections, myPosition, this.recentlyVisitedPositions);
+
+        // 9) Add this position to the recently visited uninteresting positions so we don't return immediately.
+        recentlyVisitedPositions.add(myPosition);
+        if (recentlyVisitedPositions.size() > recentlyVisitedLength)
+            recentlyVisitedPositions.remove(0);
+
+        if (validDirections.size() > 0){
+            int actionIdx = random.nextInt(validDirections.size());
+            return directionToAction(validDirections.get(actionIdx));
+        }
+
+        return Types.ACTIONS.ACTION_STOP;
+ */
