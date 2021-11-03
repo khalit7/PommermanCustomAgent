@@ -10,6 +10,7 @@ import utils.Types;
 import utils.Utils;
 import utils.Vector2d;
 
+import javax.swing.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -136,8 +137,13 @@ public class CustomSingleTreeNode
 
     private void calculate_progressive_bias(CustomSingleTreeNode currentNode)
     {
-     // first calculate Dijkstra if needed
-        // then select which progressive bias heuristic u r choosing
+        // generally putting a bomb is not a good idea.
+        for (int i=0;i<currentNode.children.length;i++) {
+            if (i==5) // action is a bomb
+                currentNode.children[i].selection_bias_value = -3;
+            else
+                currentNode.children[i].selection_bias_value = 0;
+        }
     }
     private CustomSingleTreeNode expand(GameState state) {
 
@@ -165,16 +171,16 @@ public class CustomSingleTreeNode
         //Simple, all random first, then my position.
         int nPlayers = 4;
         Types.ACTIONS[] actionsAll = new Types.ACTIONS[4];
-        int playerId = gs.getPlayerId() - Types.TILETYPE.AGENT0.getKey();
+        int myPlayerId = gs.getPlayerId() - Types.TILETYPE.AGENT0.getKey();
 
         for(int i = 0; i < nPlayers; ++i)
         {
-            if(playerId == i)
+            if(myPlayerId == i)
             {
                 actionsAll[i] = act;
             }else {
                 int actionIdx = m_rnd.nextInt(gs.nActions());
-                actionsAll[i] = Types.ACTIONS.all().get(actionIdx);
+                actionsAll[i] = Types.ACTIONS.all().get(0);
             }
         }
 

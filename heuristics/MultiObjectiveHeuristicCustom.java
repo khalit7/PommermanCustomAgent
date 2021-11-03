@@ -118,12 +118,9 @@ public class MultiObjectiveHeuristicCustom extends CustomStateHeuristic {
         {
 
             switch (objective){
-                case 0: // objective is safety
+                case 3: // objective is safety
                     return safetyHeuristicEvaluation(gs);
-                case 1: // objective is power up collection
-                    return powerUpHeuristicEvaluation(futureState);
-                case 3: // objective is : mid game tactic
-                    return midGameHeuristicEvaluation(futureState,gs);
+                    //TODO: maybe add other game tactics if appropiate
                 default:
                     return 0; // shouldn't be here
             }
@@ -138,61 +135,8 @@ public class MultiObjectiveHeuristicCustom extends CustomStateHeuristic {
                 score = -1;
             if(gameOver && win == Types.RESULT.WIN) // if you win
                 score = 1;
-            /*if (win == Types.RESULT.INCOMPLETE) // give score if still alive
-                score =0.1;*/
             return score;
         }
-        private double powerUpHeuristicEvaluation(MultiObjectiveHeuristicCustom.BoardStats futureState){
 
-
-            int powerUpAvailable = 1;
-            if (this.closestPowerUpDistance > 500) // arbitrary large value
-            {
-                powerUpAvailable = 0;
-            }
-            int woodAvailable = 1;
-            if (this.closestWoodDistance > 500) // arbitrary large value
-            {
-                woodAvailable = 0;
-            }
-            double diffWoods = - (futureState.nWoods - this.nWoods);
-            double diffPowerUpDistance = this.closestPowerUpDistance - futureState.closestPowerUpDistance ;
-            double diffWoodDistance = this.closestWoodDistance - futureState.closestWoodDistance;
-
-
-            return (diffWoods / maxWoods) * (1-powerUpAvailable) + diffWoodDistance*(1-powerUpAvailable) +powerUpAvailable*(diffPowerUpDistance/10);
-        }
-        private double midGameHeuristicEvaluation (MultiObjectiveHeuristicCustom.BoardStats futureState , GameState gs) {
-            int diffWoods = - (futureState.nWoods - this.nWoods);
-            int diffCanKick = futureState.canKick ? 1 : 0;
-            if (this.canKick) {
-                diffCanKick =  0;
-            }
-            int diffBlastStrength = futureState.blastStrength - this.blastStrength;
-            int diffEnemies = - (futureState.nEnemies - this.nEnemies);
-            int diffBombs = futureState.ammo - this.ammo;
-
-            double FACTOR_WOODS = 0.2;
-            double FACTOR_CANKCIK = 0.3;
-            double FACTOR_BLAST = 0.3;
-            double FACTOR_ENEMY = 0.1;
-            double FACTOR_LAYBOMB = 0.2;
-
-
-            boolean gameOver = gs.isTerminal();
-            Types.RESULT win = gs.winner();
-
-            double score= (diffEnemies / 3.0) * FACTOR_ENEMY + (diffWoods / maxWoods) * FACTOR_WOODS
-                    + diffCanKick * FACTOR_CANKCIK + (diffBlastStrength / maxBlastStrength) * FACTOR_BLAST
-                    + diffBombs * FACTOR_LAYBOMB;
-
-
-            if(gameOver && win == Types.RESULT.LOSS) // if you loose
-                score = -1;
-            if(gameOver && win == Types.RESULT.WIN) // if you win
-                score = 1;
-
-            return score;
-        }
     }
 }

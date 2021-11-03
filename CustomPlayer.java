@@ -36,20 +36,16 @@ public class CustomPlayer extends ParameterizedPlayer {
     public CustomMCTSParams params;
 
     // custom made parameters
-    private int safetythreshold=10;
 
     private boolean justLayedBoomb=false;
     private Boolean collectMorePowerUps=true;
 
+
     public CustomPlayer(long seed, int id) {
-        this(seed, id, new CustomMCTSParams(),10);
+        this(seed, id, new CustomMCTSParams());
     }
 
-    public CustomPlayer(long seed, int id, int safetythreshold) {
-        this(seed, id, new CustomMCTSParams(),safetythreshold);
-    }
-
-    public CustomPlayer(long seed, int id, CustomMCTSParams params, int safetythreshold) {
+    public CustomPlayer(long seed, int id, CustomMCTSParams params) {
         super(seed, id, params);
         reset(seed, id);
 
@@ -59,7 +55,6 @@ public class CustomPlayer extends ParameterizedPlayer {
         for (Types.ACTIONS act : actionsList) {
             actions[i++] = act;
         }
-        this.safetythreshold = safetythreshold;
     }
 
     @Override
@@ -91,9 +86,9 @@ public class CustomPlayer extends ParameterizedPlayer {
         // identify the objective we are trying to achive from this game state
         int objective = identifyObjective(gs);
         //TODO: depending on the objective ... modify params
-        //System.out.println(objective);
+        System.out.println(objective);
         switch (objective){
-            case 0: // pure_safety
+            case 0: // trapped .. do nothing
                 return Types.ACTIONS.ACTION_STOP;
                 case 1: // pure_power_up_collection
                     return ruleBasedAction(gs);
@@ -101,6 +96,9 @@ public class CustomPlayer extends ParameterizedPlayer {
                 params.rollout_depth=12;
                 params.heuristic_method = params.ADVANCED_HEURISTIC;
                 break;
+            case 3:
+                params.rollout_depth=10;
+                params.heuristic_method = params.MULTI_OBJECTIVE_HEURISTIC;
 
         }
         //System.out.println("check " + (params.heuristic_method == params.MULTI_OBJECTIVE_HEURISTIC));
@@ -287,14 +285,18 @@ ArrayList<Vector2d> path = new ArrayList<>();
             return 0;
         //0: dont move
         // 1:pure_powerUpCollection
-        // 2: end game
-        Boolean is_safe = evaluateSafety(gs,3); // returns True if no threat is nearby, false otherwise
+        // 2: general
+        // 3: pure safety
+
+        int safetythreshold = gs.getBlastStrength();
+        System.out.print("safety threshold "); System.out.println(safetythreshold);
+        Boolean is_safe = evaluateSafety(gs,safetythreshold); // returns True if no threat is nearby, false otherwise
         //System.out.println(is_safe);
-        if (is_safe&& collectMorePowerUps) // if safe and at beginning of game .. objective => pure power up collection
+        if (is_safe&& collectMorePowerUps) // if safe and there are still power ups to collect .. objective => pure power up collection
             return 1;
-        else if (!is_safe && collectMorePowerUps) // if not safe and beginning of the game .. objective => pure safety
-            return 2;
-        else  // middle of the game ... mid game tactic
+        else if (!is_safe && collectMorePowerUps) // if not safe and there are still power ups to collect .. objective => pure safety
+            return 3;
+        else  // general
             return 2; // reset this to 3
 
 
@@ -339,7 +341,7 @@ private boolean evaluateSafety(GameState gs,int safetythreshold) {
         double distance = myPosition.dist(threats.get(i));
         if (distance < closestThreatDistance) closestThreatDistance = distance;
     }
-    if (closestThreatDistance<safetythreshold) return false; // NOT SAFE .. SOME THREAT IS NEAR !!
+    if (Math.floor(closestThreatDistance)<=safetythreshold) return false; // NOT SAFE .. SOME THREAT IS NEAR !!
     else return true ;// safe .. no threats are close
 
 }
@@ -353,7 +355,7 @@ private boolean evaluateSafety(GameState gs,int safetythreshold) {
 
     @Override
     public Player copy() {
-        return new CustomPlayer(seed, playerID, params,safetythreshold);
+        return new CustomPlayer(seed, playerID, params);
     }
 
 }
