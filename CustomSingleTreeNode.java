@@ -1,10 +1,7 @@
 package players.PommermanCustomAgent;
 
 import core.GameState;
-import players.PommermanCustomAgent.heuristics.MultiObjectiveHeuristicCustom;
-import players.PommermanCustomAgent.heuristics.CustomAdvancedHeuristic;
-import players.PommermanCustomAgent.heuristics.CustomStateHeuristic;
-import players.PommermanCustomAgent.heuristics.ProgressiveBiasHeuristics;
+import players.PommermanCustomAgent.heuristics.*;
 import utils.ElapsedCpuTimer;
 import utils.Types;
 import utils.Utils;
@@ -39,13 +36,14 @@ public class CustomSingleTreeNode
 
     private GameState rootState;
     private CustomStateHeuristic rootStateHeuristic;
+    private CustomStateHeuristic biasRolloutHeuristic;
 
     CustomSingleTreeNode(CustomMCTSParams p, Random rnd, int num_actions, Types.ACTIONS[] actions, int objective) {
-        this(p, null, -1, rnd, num_actions, actions, 0, null,objective);
+        this(p, null, -1, rnd, num_actions, actions, 0, null,objective,null);
     }
 
     private CustomSingleTreeNode(CustomMCTSParams p, CustomSingleTreeNode parent, int childIdx, Random rnd, int num_actions,
-                                 Types.ACTIONS[] actions, int fmCallsCount, CustomStateHeuristic sh, int objective) {
+                                 Types.ACTIONS[] actions, int fmCallsCount, CustomStateHeuristic sh, int objective, CustomStateHeuristic sh2) {
         this.params = p;
         this.fmCallsCount = fmCallsCount;
         this.parent = parent;
@@ -60,6 +58,7 @@ public class CustomSingleTreeNode
         if(parent != null) {
             m_depth = parent.m_depth + 1;
             this.rootStateHeuristic = sh;
+            this.biasRolloutHeuristic = sh2;
         }
         else
             m_depth = 0;
@@ -68,6 +67,8 @@ public class CustomSingleTreeNode
     void setRootGameState(GameState gs)
     {
         this.rootState = gs;
+
+        this.biasRolloutHeuristic = new RollOutBiasHeuristic(gs);
 //        if (params.heuristic_method == params.CUSTOM_HEURISTIC)
 //            this.rootStateHeuristic = new CustomHeuristic(gs);
 //        else if (params.heuristic_method == params.ADVANCED_HEURISTIC) // New method: combined heuristics
@@ -137,12 +138,9 @@ public class CustomSingleTreeNode
 
     private void calculate_progressive_bias(CustomSingleTreeNode currentNode)
     {
-        // generally putting a bomb is not a good idea.
+
         for (int i=0;i<currentNode.children.length;i++) {
-            if (i==5) // action is a bomb
-                currentNode.children[i].selection_bias_value = -3;
-            else
-                currentNode.children[i].selection_bias_value = 0;
+                currentNode.children[i].selection_bias_value = ProgressiveBiasHeuristics.heuristic1(rootState,i,this.objective);
         }
     }
     private CustomSingleTreeNode expand(GameState state) {
@@ -161,7 +159,7 @@ public class CustomSingleTreeNode
         roll(state, actions[bestAction]);
 
         CustomSingleTreeNode tn = new CustomSingleTreeNode(params,this,bestAction,this.m_rnd,num_actions,
-                actions, fmCallsCount, rootStateHeuristic,this.objective);
+                actions, fmCallsCount, rootStateHeuristic,this.objective, biasRolloutHeuristic);
         children[bestAction] = tn;
         return tn;
     }
@@ -228,8 +226,12 @@ public class CustomSingleTreeNode
         int thisDepth = this.m_depth;
 
         while (!finishRollout(state,thisDepth)) {
-            //int action = safeRandomAction(state);
-            int action = biasedAction(state); // biasing rollouts
+            // bias only the first half the rollouts
+            int action;
+            if (thisDepth>params.rollout_depth/2)
+                action = biasedAction(state); // biasing rollouts
+            else
+                action = safeRandomAction(state);
             roll(state, actions[action]);
             thisDepth++;
         }
@@ -243,7 +245,7 @@ private int biasedAction(GameState gs) {
         for (int i =0; i<actionsToTry.size();i++){
             GameState gsCopy = gs.copy();
             roll(gsCopy,actionsToTry.get(i));
-            double stateEvaluation = rootStateHeuristic.evaluateState(gsCopy,objective);
+            double stateEvaluation = biasRolloutHeuristic.evaluateState(gsCopy,objective);
             actions_Values.put(actionsToTry.get(i),stateEvaluation);
             if (stateEvaluation > max_value) {
                 max_value = stateEvaluation;

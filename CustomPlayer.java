@@ -86,18 +86,18 @@ public class CustomPlayer extends ParameterizedPlayer {
         // identify the objective we are trying to achive from this game state
         int objective = identifyObjective(gs);
         //TODO: depending on the objective ... modify params
-        System.out.println(objective);
+        //System.out.println(objective);
         switch (objective){
             case 0: // trapped .. do nothing
                 return Types.ACTIONS.ACTION_STOP;
                 case 1: // pure_power_up_collection
                     return ruleBasedAction(gs);
             case 2: // endgame tactic
-                params.rollout_depth=12;
+                params.rollout_depth=12; //12
                 params.heuristic_method = params.ADVANCED_HEURISTIC;
                 break;
-            case 3:
-                params.rollout_depth=10;
+            case 3: // objective is safety
+                params.rollout_depth=10; //10
                 params.heuristic_method = params.MULTI_OBJECTIVE_HEURISTIC;
 
         }
@@ -289,12 +289,12 @@ ArrayList<Vector2d> path = new ArrayList<>();
         // 3: pure safety
 
         int safetythreshold = gs.getBlastStrength();
-        System.out.print("safety threshold "); System.out.println(safetythreshold);
+        //System.out.print("safety threshold "); System.out.println(safetythreshold);
         Boolean is_safe = evaluateSafety(gs,safetythreshold); // returns True if no threat is nearby, false otherwise
         //System.out.println(is_safe);
         if (is_safe&& collectMorePowerUps) // if safe and there are still power ups to collect .. objective => pure power up collection
             return 1;
-        else if (!is_safe && collectMorePowerUps) // if not safe and there are still power ups to collect .. objective => pure safety
+        else if (!is_safe && collectMorePowerUps && safetythreshold<5) // if not safe and there are still power ups to collect .. objective => pure safety
             return 3;
         else  // general
             return 2; // reset this to 3
