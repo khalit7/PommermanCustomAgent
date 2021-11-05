@@ -82,11 +82,13 @@ public class CustomPlayer extends ParameterizedPlayer {
         // Number of actions available
         int num_actions = actions.length;
 
+        // if you cant see the whole board ... periodiclly check if we should collect more power ups or nor
+        if(Types.DEFAULT_VISION_RANGE != -1) this.collectMorePowerUps = powerUpOrWoodNearby(gs);
 
         // identify the objective we are trying to achive from this game state
         int objective = identifyObjective(gs);
         //TODO: depending on the objective ... modify params
-        //System.out.println(objective);
+        System.out.println(objective);
         switch (objective){
             case 0: // trapped .. do nothing
                 return Types.ACTIONS.ACTION_STOP;
@@ -118,6 +120,23 @@ public class CustomPlayer extends ParameterizedPlayer {
 
         //... and return it.
         return actions[action];
+    }
+    private boolean powerUpOrWoodNearby(GameState gs) {
+        Vector2d myPosition = gs.getPosition();
+        Types.TILETYPE[][] board = gs.getBoard();
+        int depth = Types.DEFAULT_VISION_RANGE;
+        for (int r = max(0, myPosition.x - depth); r < min(board.length, myPosition.x + depth); r++) {
+            for (int c = max(0, myPosition.y - depth); c < min(board.length, myPosition.y + depth); c++) {
+                Types.TILETYPE type =  board[c][r];
+                if (type == Types.TILETYPE.EXTRABOMB ||
+                        type == Types.TILETYPE.INCRRANGE ||
+                        type == Types.TILETYPE.KICK ||
+                        type == Types.TILETYPE.WOOD
+                )
+                    return true;
+            }
+        }
+        return false;
     }
     public Types.ACTIONS ruleBasedAction(GameState gs){
         // get all power up positions
@@ -169,7 +188,7 @@ public class CustomPlayer extends ParameterizedPlayer {
         }
         // else
         if (woodsPosition.size()==0) {
-            return Types.ACTIONS.ACTION_STOP; //should never reach this line
+            return Types.ACTIONS.ACTION_STOP;
         }
             // go to wood
             Vector2d closestWood = getClosestItem(myPosition,woodsPosition);
