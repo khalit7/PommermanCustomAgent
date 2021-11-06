@@ -2,7 +2,6 @@ package players.PommermanCustomAgent.heuristics;
 
 
 import core.GameState;
-import players.PommermanCustomAgent.heuristics.CustomStateHeuristic;
 import utils.Types;
 
 public class RollOutBiasHeuristic extends CustomStateHeuristic {

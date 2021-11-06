@@ -82,30 +82,28 @@ public class CustomPlayer extends ParameterizedPlayer {
         // Number of actions available
         int num_actions = actions.length;
 
-        // if you cant see the whole board ... periodiclly check if we should collect more power ups or nor
-        if(Types.DEFAULT_VISION_RANGE != -1) this.collectMorePowerUps = powerUpOrWoodNearby(gs);
+        // if you can only see a very small portion of the world ... periodically check if we should collect more power ups or nor
+        if(Types.DEFAULT_VISION_RANGE != -1 && Types.DEFAULT_VISION_RANGE <5) this.collectMorePowerUps = powerUpOrWoodNearby(gs);
 
-        // identify the objective we are trying to achive from this game state
+        // identify the objective we are trying to achieve from this game state
         int objective = identifyObjective(gs);
-        //TODO: depending on the objective ... modify params
-        System.out.println(objective);
+
         switch (objective){
-            case 0: // trapped .. do nothing
+            case 0: // trapped ==> do nothing
                 return Types.ACTIONS.ACTION_STOP;
                 case 1: // pure_power_up_collection
                     return ruleBasedAction(gs);
-            case 2: // endgame tactic
-                params.rollout_depth=12; //12
+            case 2: // general tactic
+                params.rollout_depth=12; //10
                 params.heuristic_method = params.ADVANCED_HEURISTIC;
                 break;
             case 3: // objective is safety
-                params.rollout_depth=10; //10
+                params.rollout_depth=10; //8
                 params.heuristic_method = params.MULTI_OBJECTIVE_HEURISTIC;
 
         }
-        //System.out.println("check " + (params.heuristic_method == params.MULTI_OBJECTIVE_HEURISTIC));
-        // Root of the tree
 
+        // Root of the tree
         CustomSingleTreeNode m_root = new CustomSingleTreeNode(params, m_rnd, num_actions, actions,objective);
         m_root.setRootGameState(gs);
 
@@ -116,12 +114,12 @@ public class CustomPlayer extends ParameterizedPlayer {
         int action = m_root.mostVisitedAction();
         //int action = m_root.bestAction();
 
-        // TODO update message memory
 
         //... and return it.
         return actions[action];
     }
     private boolean powerUpOrWoodNearby(GameState gs) {
+        // this function checks if there is a bomb or wood nearby.
         Vector2d myPosition = gs.getPosition();
         Types.TILETYPE[][] board = gs.getBoard();
         int depth = Types.DEFAULT_VISION_RANGE;
@@ -138,7 +136,7 @@ public class CustomPlayer extends ParameterizedPlayer {
         }
         return false;
     }
-    public Types.ACTIONS ruleBasedAction(GameState gs){
+    public Types.ACTIONS ruleBasedAction(GameState gs){ //this function returns an action towards a power up, wood or a bomb to destroy a wood.
         // get all power up positions
         Vector2d myPosition = gs.getPosition();
 
@@ -291,21 +289,20 @@ ArrayList<Vector2d> path = new ArrayList<>();
                 counter+=1;
             }
         }
-
+        // if counter is 4 this means all 4 directions are closed
         if (counter == 4) return true;
         else return false;
 
     }
     private int identifyObjective(GameState gs) {
-        // if trapped.. stay still
+        //0: trapped
+        // 1:pure_powerUpCollection
+        // 2: general
+        // 3: pure safety
         Types.TILETYPE[][] board = gs.getBoard();
         Vector2d myposition = gs.getPosition();
         if (isTrapped(myposition,board))
             return 0;
-        //0: dont move
-        // 1:pure_powerUpCollection
-        // 2: general
-        // 3: pure safety
 
         int safetythreshold = gs.getBlastStrength();
         //System.out.print("safety threshold "); System.out.println(safetythreshold);
@@ -316,13 +313,14 @@ ArrayList<Vector2d> path = new ArrayList<>();
         else if (!is_safe && collectMorePowerUps && safetythreshold<5) // if not safe and there are still power ups to collect .. objective => pure safety
             return 3;
         else  // general
-            return 2; // reset this to 3
+            return 2;
 
 
 
 
     }
 private boolean evaluateSafety(GameState gs,int safetythreshold) {
+        // if you have just layed a bomb ==> not safe
         if(this.justLayedBoomb) {
             this.justLayedBoomb=false;
             return false;
@@ -355,13 +353,13 @@ private boolean evaluateSafety(GameState gs,int safetythreshold) {
     }
 
     // check if there is a nearby threat
-    double closestThreatDistance = 1000 ;// very large number
+    double closestThreatDistance = 1000 ;// arbitrary large number
     for (int i=0;i<threats.size();i++) {
         double distance = myPosition.dist(threats.get(i));
         if (distance < closestThreatDistance) closestThreatDistance = distance;
     }
-    if (Math.floor(closestThreatDistance)<=safetythreshold) return false; // NOT SAFE .. SOME THREAT IS NEAR !!
-    else return true ;// safe .. no threats are close
+    if (Math.floor(closestThreatDistance)<=safetythreshold) return false; // NOT SAFE ==> SOME THREAT IS NEAR !!
+    else return true ;// safe ==> no threats are close
 
 }
     @Override

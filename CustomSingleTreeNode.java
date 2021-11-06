@@ -7,7 +7,6 @@ import utils.Types;
 import utils.Utils;
 import utils.Vector2d;
 
-import javax.swing.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -43,7 +42,7 @@ public class CustomSingleTreeNode
     }
 
     private CustomSingleTreeNode(CustomMCTSParams p, CustomSingleTreeNode parent, int childIdx, Random rnd, int num_actions,
-                                 Types.ACTIONS[] actions, int fmCallsCount, CustomStateHeuristic sh, int objective, CustomStateHeuristic sh2) {
+                                 Types.ACTIONS[] actions, int fmCallsCount, CustomStateHeuristic sh, int objective, CustomStateHeuristic RolloutBiasHeuristic) {
         this.params = p;
         this.fmCallsCount = fmCallsCount;
         this.parent = parent;
@@ -58,7 +57,7 @@ public class CustomSingleTreeNode
         if(parent != null) {
             m_depth = parent.m_depth + 1;
             this.rootStateHeuristic = sh;
-            this.biasRolloutHeuristic = sh2;
+            this.biasRolloutHeuristic = RolloutBiasHeuristic;
         }
         else
             m_depth = 0;
@@ -69,10 +68,6 @@ public class CustomSingleTreeNode
         this.rootState = gs;
 
         this.biasRolloutHeuristic = new RollOutBiasHeuristic(gs);
-//        if (params.heuristic_method == params.CUSTOM_HEURISTIC)
-//            this.rootStateHeuristic = new CustomHeuristic(gs);
-//        else if (params.heuristic_method == params.ADVANCED_HEURISTIC) // New method: combined heuristics
-//            this.rootStateHeuristic = new AdvancedHeuristic(gs, m_rnd);
         if (params.heuristic_method == params.MULTI_OBJECTIVE_HEURISTIC)
             this.rootStateHeuristic = new MultiObjectiveHeuristicCustom(gs);
         else if (params.heuristic_method == params.ADVANCED_HEURISTIC)
@@ -115,7 +110,7 @@ public class CustomSingleTreeNode
                 stop = (fmCallsCount + params.rollout_depth) > params.num_fmcalls;
             }
         }
-        //System.out.println(" ITERS " + numIters);
+
     }
 
     private CustomSingleTreeNode treePolicy(GameState state) {
@@ -231,7 +226,7 @@ public class CustomSingleTreeNode
             if (thisDepth>params.rollout_depth/2)
                 action = biasedAction(state); // biasing rollouts
             else
-                action = safeRandomAction(state);
+                action = safeRandomAction(state);// random rollouts
             roll(state, actions[action]);
             thisDepth++;
         }
